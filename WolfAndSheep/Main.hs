@@ -161,8 +161,8 @@ deep counter =
   if (elem counter [0..4])
     then 1
     else if (elem counter [5..8])
-      then 1
-      else 1
+      then sndLvl
+      else lstLvl
 
 isAIWinner board (Coords (x1, y1, x2, y2)) =
   (filter (\x -> case x of (White Nothing) -> True
