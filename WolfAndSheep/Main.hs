@@ -13,20 +13,20 @@ main = do
   window <- windowNew
   set window [windowTitle := "Wolf and Sheep", containerBorderWidth := 0,
                 windowDefaultWidth := width, windowDefaultHeight := height]
-  createTable window startingBoard
+  createTable window startingBoard 0
   onDestroy window mainQuit
   mainGUI
 
-createTable :: Window -> Board -> IO ()
-createTable window board = do
-  table <- createBoard 8 12 window board
+createTable :: Window -> Board -> Int -> IO ()
+createTable window board counter = do
+  table <- createBoard 8 12 window board counter
   widgetShowAll table
   containerAdd window table
   widgetShowAll window
 
-updateTable :: Window -> Board -> IO ()
-updateTable window board = do
-  table <- createBoard 8 12 window board
+updateTable :: Window -> Board -> Int -> IO ()
+updateTable window board counter = do ----------------------------TU DODANY COUNTER ------------------------------------
+  table <- createBoard 8 12 window board counter
   widgetShowAll table
   children <- containerGetChildren window
   containerRemove window (head children)
@@ -34,22 +34,22 @@ updateTable window board = do
   widgetShowAll table
   widgetShowAll window
 
-createBoard :: Int -> Int -> Window -> Board -> IO Table
-createBoard heightT widthT window board = do
+createBoard :: Int -> Int -> Window -> Board -> Int -> IO Table
+createBoard heightT widthT window board counter = do
   table <- tableNew heightT widthT True
-  table <- createPlayingBoardFromField window board table (Coords (0, 1, 0, 1))
-  createNewGameButton table window
+  table <- createPlayingBoardFromField window board table (Coords (0, 1, 0, 1)) counter
+  createNewGameButton table window counter
   createSaveButton table window board
   createLoadButton table window
   createCloseButton table window
   widgetShowAll table
   return table
 
-createPlayingBoardFromField :: Window -> Board -> Table -> Coo -> IO Table
-createPlayingBoardFromField window board table None = return table
-createPlayingBoardFromField window board table (Coords (x1, x2, y1, y2)) = do
-  fieldButton window (board!!x1!!y1) table board (Coords (x1, x2, y1, y2))
-  createPlayingBoardFromField window board table (next (Coords (x1, x2, y1, y2)))
+createPlayingBoardFromField :: Window -> Board -> Table -> Coo -> Int -> IO Table
+createPlayingBoardFromField window board table None _ = return table
+createPlayingBoardFromField window board table (Coords (x1, x2, y1, y2)) counter = do
+  fieldButton window (board!!x1!!y1) table board (Coords (x1, x2, y1, y2)) counter
+  createPlayingBoardFromField window board table (next (Coords (x1, x2, y1, y2))) counter
 
 next :: Coo -> Coo
 next None = None
@@ -60,10 +60,10 @@ next (Coords (x1, x2, y1, y2)) =
                    (x, 8) -> Coords (x, x+1, 7, 8)
                    (x, y) -> Coords (x, x+1, y1, y)
 
-createNewGameButton :: Table -> Window -> IO (ConnectId Button)
-createNewGameButton table window = do
+createNewGameButton :: Table -> Window -> Int -> IO (ConnectId Button)
+createNewGameButton table window counter = do
   newGameButton <- myNewButton table "" "images/NewGame.png" 9 11 0 1
-  onClicked newGameButton $ (updateTable window startingBoard)
+  onClicked newGameButton $ (updateTable window startingBoard (counter+1))
 
 createSaveButton :: Table -> Window -> Board -> IO (ConnectId Button)
 createSaveButton table window board = do
@@ -94,61 +94,91 @@ loadGameFrom ioMaybePos window infoPopup = do
       widgetShow infoOnFailureLoadingPopup
     Right (Just lstOfPos) -> do
       board <- createBoardFrom lstOfPos
-      updateTable window board
+      updateTable window board 5
   widgetDestroy infoPopup
 
 -- Only wolf should be movable from level of button.
 -- Sheep will be played by kind of AI.
-fieldButton :: Window -> Field -> Table -> Board -> Coo -> IO (ConnectId Button)
-fieldButton window field table board None =  do
+fieldButton :: Window -> Field -> Table -> Board -> Coo -> Int -> IO (ConnectId Button)
+fieldButton window field table board None _ =  do
   btn <- myNewButton table "I shouldn't be here!" "images/White.png" 0 1 0 1
   doNothingOnClick btn
-fieldButton window EmptyBlack table board (Coords (x1, y1, x2, y2)) = do
+fieldButton window EmptyBlack table board (Coords (x1, y1, x2, y2)) _ = do
   btn <- myNewButton table "" "images/Black.png" x2 y2 x1 y1
   doNothingOnClick btn
-fieldButton window (White (Just (Sheep _))) table board (Coords (x1, y1, x2, y2)) = do
+fieldButton window (White (Just (Sheep _))) table board (Coords (x1, y1, x2, y2)) _ = do
   btn <- myNewButton table "" "images/Sheep.gif" x2 y2 x1 y1
   doNothingOnClick btn
-fieldButton window (White (Just Wolf)) table board (Coords (x1, y1, x2, y2)) = do
+fieldButton window (White (Just Wolf)) table board (Coords (x1, y1, x2, y2)) _ = do
   btn <- myNewButton table "" "images/Wolf.gif" x2 y2 x1 y1
   doNothingOnClick btn
-fieldButton window (White Nothing) table board (Coords (x1, y1, x2, y2)) = do
+fieldButton window (White Nothing) table board (Coords (x1, y1, x2, y2)) counter = do
   btn <- myNewButton table "" "images/White.png" x2 y2 x1 y1
   let coo = Coords (x1, y1, x2, y2)
   onClicked btn (do
-    putStrLn("???????????????????????????????????????????????????????????????????")
-    state <- moveWolfHere window board coo (possiblePlaces coo) (White (Just Wolf))
-    case state of Moved -> return ()
-                  NotMoved -> return ()
+    counter <- moveWolfHere window board coo (possiblePlaces coo) (White (Just Wolf)) True (counter+1)
     return ())
-fieldButton window NewPositionForWolf table board (Coords (x1, y1, x2, y2)) = do
+fieldButton window NewPositionForWolf table board (Coords (x1, y1, x2, y2)) _ = do
   btn <- myNewButton table "" "images/Mouse.png" x2 y2 x1 y1
   let lookUpPlaces = [(i,j) | i <- [0..7], j <- [0..7]]
   let coo = Coords (x1, y1, x2, y2)
   onClicked btn (do
-    moveWolfHere window board coo lookUpPlaces NewPositionForWolf
+    moveWolfHere window board coo lookUpPlaces NewPositionForWolf False 0
     return ())
 
--- aiMove :: Window -> Board -> Int -> ???
-aiMove window board deep = do
+aiMove window board deep counter = do
   updatedBoard <- minimax board deep
-  res <- updateTable window updatedBoard
-  return res
+  res <- updateTable window updatedBoard counter
+  return updatedBoard
 
 doNothingOnClick btn = do onClicked btn (return ())
 
-moveWolfHere window board (Coords (x1, y1, x2, y2)) placesForLookUp filterElement = do
+moveWolfHere window board (Coords (x1, y1, x2, y2)) placesForLookUp filterElement isAiTurn counter = do
   let isElement = \(x,y) -> board!!x!!y == filterElement
-  board <- case filter isElement placesForLookUp of []  -> do
-                                                             return NotMoved
-                                                    lst -> do
-                                                             board <- replaceWithWhiteField (return board) lst
-                                                             board <- putWolfIn board (Coords (x1, y1, x2, y2))
-                                                             updateTable window board
-                                                             aiMove window board 5
-                                                             return Moved
-  return board
+  conRes <- case filter isElement placesForLookUp of []  -> do
+                                                             return counter
+                                                     lst -> do
+                                                              board <- replaceWithWhiteField (return board) lst
+                                                              board <- putWolfIn board (Coords (x1, y1, x2, y2))
+                                                              updateTable window board (counter+1)
+                                                              putStrLn (show (deep counter))
+                                                              putStrLn (show counter)
+                                                              if (isWinner (Coords (x1, y1, x2, y2)))
+                                                                then createPopupWin window counter
+                                                                else return ()
+                                                              newBoard <- if isAiTurn
+                                                                then aiMove window board (deep counter) counter
+                                                                else return board
+                                                              rrr <- isAIWinner newBoard (Coords (x1, y1, x2, y2))
+                                                              putStrLn(show rrr)
+                                                              if (rrr /= [])
+                                                                then createPopupLost window counter
+                                                                else return ()
+                                                              return counter
+  return conRes
 
+------------------------------------------------------------------------------------------------------------------------
+deep counter =
+  if (elem counter [0..4])
+    then 1
+    else if (elem counter [5..8])
+      then 5
+      else 6
+
+isAIWinner board (Coords (x1, y1, x2, y2)) = do
+  return
+    (filter (\x -> case x of (White (Just (Sheep _ ))) -> True
+                             _                         -> False)
+      (map (\x -> board!!x1!!x2) (possiblePlaces (Coords (x1, y1, x2, y2)))))
+
+createPopupWithMsg window msg counter = do
+  infoPopup <- messageDialogNew Nothing [] MessageInfo ButtonsNone msg
+  widgetShow infoPopup
+  updateTable window startingBoard 0
+createPopupWin window counter = createPopupWithMsg window "You win! Play again!" counter
+createPopupLost window counter = createPopupWithMsg window "You lost! Play again!" counter
+------------------------------------------------------------------------------------------------------------------------
+isWinner (Coords (x1, y1, x2, y2)) = x1 == 0
 --------------------------------------------------Saving----------------------------------------------------------------
 
 positionsToSave :: Board -> PlayersPositions

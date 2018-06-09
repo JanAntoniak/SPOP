@@ -89,27 +89,28 @@ fillTree' (Node((w,s), _, children)) Wolf =
     mappedChildren) where
     mappedChildren = (map (\x -> (fillTree' x (Sheep One))) children)
 
-
 heuristic :: GameTree -> Int
 heuristic ((w1, w2), sheep) = (heuristic' ((w1, w2), sheep) []) + w1
 
 heuristic' :: GameTree -> [(Int, Int)] -> Int
 heuristic' ((w1, w2), sheep) tabu =
-  if w1 == 1
-    then 0
-    else if (elem (w1,w2) tabu)
-      then 100
-      else 1+(min
-        (if (canGoRightUp ((w1,w2), sheep))
-          then (heuristic' ((w1-1, w2+1), sheep) (((w1,w2)):tabu))
-          else if (canGoRightBack ((w1,w2), sheep))
-            then (heuristic' ((w1+1, w2+1), sheep) (((w1,w2)):tabu))
-            else 100)
-        (if (canGoLeftUp ((w1,w2), sheep))
-          then (heuristic' ((w1-1, w2-1), sheep) (((w1,w2)):tabu))
-          else if (canGoLeftBack ((w1,w2), sheep))
-            then (heuristic' ((w1+1, w2-1), sheep) (((w1,w2)):tabu))
-            else 100))
+  if (expandMovesWolf (w1,w2) sheep) == []
+    then 10000
+    else if w1 == 1
+      then 0
+      else if (elem (w1,w2) tabu)
+        then 100
+        else 1+(min
+          (if (canGoRightUp ((w1,w2), sheep))
+            then (heuristic' ((w1-1, w2+1), sheep) (((w1,w2)):tabu))
+            else if (canGoRightBack ((w1,w2), sheep))
+              then (heuristic' ((w1+1, w2+1), sheep) (((w1,w2)):tabu))
+              else 100)
+          (if (canGoLeftUp ((w1,w2), sheep))
+            then (heuristic' ((w1-1, w2-1), sheep) (((w1,w2)):tabu))
+            else if (canGoLeftBack ((w1,w2), sheep))
+              then (heuristic' ((w1+1, w2-1), sheep) (((w1,w2)):tabu))
+              else 100))
 
 canGo :: GameTree -> Bool
 canGo ((w1,w2), sheep) = (elem w1 [1..8]) && (elem w2 [1..8]) && (not (elem (w1,w2) sheep))
