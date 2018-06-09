@@ -5,6 +5,7 @@ import Config
 import Utils
 import Minimax
 import FileManagement
+
 import Graphics.UI.Gtk
 
 main :: IO ()
@@ -149,9 +150,7 @@ moveWolfHere window board (Coords (x1, y1, x2, y2)) placesForLookUp filterElemen
                                                               newBoard <- if isAiTurn
                                                                 then aiMove window board (deep counter) counter
                                                                 else return board
-                                                              rrr <- isAIWinner newBoard (Coords (x1, y1, x2, y2))
-                                                              putStrLn(show rrr)
-                                                              if (rrr /= [])
+                                                              if isAIWinner newBoard (Coords (x1, y1, x2, y2))
                                                                 then createPopupLost window counter
                                                                 else return ()
                                                               return counter
@@ -162,14 +161,13 @@ deep counter =
   if (elem counter [0..4])
     then 1
     else if (elem counter [5..8])
-      then 5
-      else 6
+      then 1
+      else 1
 
-isAIWinner board (Coords (x1, y1, x2, y2)) = do
-  return
-    (filter (\x -> case x of (White (Just (Sheep _ ))) -> True
-                             _                         -> False)
-      (map (\x -> board!!x1!!x2) (possiblePlaces (Coords (x1, y1, x2, y2)))))
+isAIWinner board (Coords (x1, y1, x2, y2)) =
+  (filter (\x -> case x of (White Nothing) -> True
+                           _               -> False)
+    (map (\x -> board!!fst(x)!!snd(x)) (possiblePlaces (Coords (x1, y1, x2, y2))))) == []
 
 createPopupWithMsg window msg counter = do
   infoPopup <- messageDialogNew Nothing [] MessageInfo ButtonsNone msg
