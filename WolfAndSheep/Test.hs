@@ -2,13 +2,9 @@ module Test where
 
 main :: IO ()
 
-a' :: Int -> Int
-a' x = x*x
-
-a :: Int -> Int -> Int
-a x y = x+y
+a :: [Int]
+a = foldl (++) [] [[1,2], [5,6]]
 
 main = do
-  putStrLn (show (a' 4))
-  putStrLn (show (a 4 5))
+  putStrLn (show a)
   return ()

@@ -1,6 +1,8 @@
 module Board where
 
-data Animal = Wolf | Sheep deriving (Eq, Show)
+data SheepNumber = One | Two | Three | Four deriving (Eq, Show)
+
+data Animal = Sheep SheepNumber | Wolf deriving (Eq, Show)
 
 data Field = White (Maybe Animal) | EmptyBlack | NewPositionForWolf deriving (Eq, Show)
 
@@ -12,9 +14,9 @@ emptyBoard = do
   let second = [White Nothing, EmptyBlack, White Nothing, EmptyBlack, White Nothing, EmptyBlack, White Nothing, EmptyBlack]
   [first, second, first, second, first, second, first, second]
 
-startingBoard :: Board
+startingBoard :: [[Field]]
 startingBoard = [
-                [EmptyBlack, White(Just Sheep), EmptyBlack, White(Just Sheep), EmptyBlack, White(Just Sheep), EmptyBlack, White(Just Sheep)],
+                [EmptyBlack, White(Just (Sheep One)), EmptyBlack, White(Just (Sheep Two)), EmptyBlack, White(Just (Sheep Three)), EmptyBlack, White(Just (Sheep Four))],
                 [White Nothing, EmptyBlack, White Nothing, EmptyBlack, White Nothing, EmptyBlack, White Nothing, EmptyBlack],
                 [EmptyBlack, White Nothing, EmptyBlack, White Nothing, EmptyBlack, White Nothing, EmptyBlack, White Nothing],
                 [White Nothing, EmptyBlack, White Nothing, EmptyBlack, White Nothing, EmptyBlack, White Nothing, EmptyBlack],

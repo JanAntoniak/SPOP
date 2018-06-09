@@ -79,8 +79,7 @@ createCloseButton table window = do
   closeButton <- myNewButton table "" "images/Exit.png" 9 11 6 7
   onClicked closeButton (do
     onDestroy window mainQuit
-    widgetDestroy window
-    )
+    widgetDestroy window)
 
 --loadGameFrom :: IO (Maybe PlayersPositions) -> Window -> MessageDialog -> IO ()
 loadGameFrom ioMaybePos window infoPopup = do
@@ -99,10 +98,10 @@ loadGameFrom ioMaybePos window infoPopup = do
 createBoardFrom :: PlayersPositions -> IO Board
 createBoardFrom ((x1, y1), (x2, y2), (x3, y3), (x4, y4), (x5, y5)) = do
   boardWithWolf <- putWolfIn emptyBoard (Coords (x1, x1+1, y1, y1+1))
-  board <- putSheepIn boardWithWolf (Coords (x2, x2+1, y2, y2+1))
-  board <- putSheepIn board (Coords (x3, x3+1, y3, y3+1))
-  board <- putSheepIn board (Coords (x4, x4+1, y4, y4+1))
-  board <- putSheepIn board (Coords (x5, x5+1, y5, y5+1))
+  board <- putSheepIn boardWithWolf One (Coords (x2, x2+1, y2, y2+1))
+  board <- putSheepIn board Two (Coords (x3, x3+1, y3, y3+1))
+  board <- putSheepIn board Three (Coords (x4, x4+1, y4, y4+1))
+  board <- putSheepIn board Four (Coords (x5, x5+1, y5, y5+1))
   return board
 
 -- Only wolf should be movable from level of button.
@@ -114,7 +113,7 @@ fieldButton window field table board None =  do
 fieldButton window EmptyBlack table board (Coords (x1, y1, x2, y2)) = do
   btn <- myNewButton table "" "images/Black.png" x2 y2 x1 y1
   doNothingOnClick btn
-fieldButton window (White (Just Sheep)) table board (Coords (x1, y1, x2, y2)) = do
+fieldButton window (White (Just (Sheep _))) table board (Coords (x1, y1, x2, y2)) = do
   btn <- myNewButton table "" "images/Sheep.gif" x2 y2 x1 y1
   doNothingOnClick btn
 fieldButton window (White (Just Wolf)) table board (Coords (x1, y1, x2, y2)) = do
@@ -154,7 +153,7 @@ moveWolfHere window board (Coords (x1, y1, x2, y2)) placesForLookUp filterElemen
 
 positionsToSave :: Board -> PlayersPositions
 positionsToSave board =
-  case (playerPositions board 0 [] (White (Just Wolf)))++(playerPositions board 0 [] (White (Just Sheep))) of
+  case (playerPositions board 0 [] (White (Just Wolf)))++(playerPositions board 0 [] (White (Just (Sheep One)))) of
     [(x1, y1), (x2, y2), (x3, y3), (x4, y4), (x5, y5)] -> ((y1, x1), (y2, x2), (y3, x3), (y4, x4), (y5, x5))
     _ -> ((7,4), (0,1), (0, 3), (0,5), (0,7))
 
@@ -183,8 +182,8 @@ putElemIn :: Field -> Board -> Coo -> IO Board
 putElemIn elem board (Coords (x1, y1, x2, y2)) = do
   return (replaceNth x1 (replaceNth x2 elem (board!!x1)) board)
 
-putSheepIn :: Board -> Coo -> IO Board
-putSheepIn board coo = putElemIn (White (Just Sheep)) board coo
+putSheepIn :: Board -> SheepNumber -> Coo -> IO Board
+putSheepIn board number coo = putElemIn (White (Just (Sheep number))) board coo
 
 putWolfIn :: Board -> Coo -> IO Board
 putWolfIn board coo = putElemIn (White (Just Wolf)) board coo
