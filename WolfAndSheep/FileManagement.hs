@@ -44,7 +44,6 @@ loadGame infoPopup = do
   widgetDestroy dialog
   onDestroy dialog mainQuit
   mainGUI
-  putStrLn (show res)
   return res
 
 validatePositions :: PlayersPositions -> Maybe PlayersPositions

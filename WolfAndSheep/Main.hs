@@ -2,6 +2,8 @@ module Main where
 
 import Board
 import Config
+import Utils
+import Minimax
 import FileManagement
 import Graphics.UI.Gtk
 
@@ -95,15 +97,6 @@ loadGameFrom ioMaybePos window infoPopup = do
       updateTable window board
   widgetDestroy infoPopup
 
-createBoardFrom :: PlayersPositions -> IO Board
-createBoardFrom ((x1, y1), (x2, y2), (x3, y3), (x4, y4), (x5, y5)) = do
-  boardWithWolf <- putWolfIn emptyBoard (Coords (x1, x1+1, y1, y1+1))
-  board <- putSheepIn boardWithWolf One (Coords (x2, x2+1, y2, y2+1))
-  board <- putSheepIn board Two (Coords (x3, x3+1, y3, y3+1))
-  board <- putSheepIn board Three (Coords (x4, x4+1, y4, y4+1))
-  board <- putSheepIn board Four (Coords (x5, x5+1, y5, y5+1))
-  return board
-
 -- Only wolf should be movable from level of button.
 -- Sheep will be played by kind of AI.
 fieldButton :: Window -> Field -> Table -> Board -> Coo -> IO (ConnectId Button)
@@ -123,9 +116,10 @@ fieldButton window (White Nothing) table board (Coords (x1, y1, x2, y2)) = do
   btn <- myNewButton table "" "images/White.png" x2 y2 x1 y1
   let coo = Coords (x1, y1, x2, y2)
   onClicked btn (do
+    putStrLn("???????????????????????????????????????????????????????????????????")
     state <- moveWolfHere window board coo (possiblePlaces coo) (White (Just Wolf))
-    case state of Moved -> return aiMove
-                  NotMoved -> return (return ())
+    case state of Moved -> return ()
+                  NotMoved -> return ()
     return ())
 fieldButton window NewPositionForWolf table board (Coords (x1, y1, x2, y2)) = do
   btn <- myNewButton table "" "images/Mouse.png" x2 y2 x1 y1
@@ -135,17 +129,23 @@ fieldButton window NewPositionForWolf table board (Coords (x1, y1, x2, y2)) = do
     moveWolfHere window board coo lookUpPlaces NewPositionForWolf
     return ())
 
-aiMove() = ()
+-- aiMove :: Window -> Board -> Int -> ???
+aiMove window board deep = do
+  updatedBoard <- minimax board deep
+  res <- updateTable window updatedBoard
+  return res
 
 doNothingOnClick btn = do onClicked btn (return ())
 
 moveWolfHere window board (Coords (x1, y1, x2, y2)) placesForLookUp filterElement = do
   let isElement = \(x,y) -> board!!x!!y == filterElement
-  board <- case filter isElement placesForLookUp of []  -> do return NotMoved
+  board <- case filter isElement placesForLookUp of []  -> do
+                                                             return NotMoved
                                                     lst -> do
                                                              board <- replaceWithWhiteField (return board) lst
                                                              board <- putWolfIn board (Coords (x1, y1, x2, y2))
                                                              updateTable window board
+                                                             aiMove window board 5
                                                              return Moved
   return board
 
@@ -178,16 +178,6 @@ replaceWithWhiteField board ((x1, x2):rest) = do
     b <- board
     replaceWithWhiteField (return (replaceNth x1 (replaceNth x2 (White Nothing) (b!!x1)) b)) rest
 
-putElemIn :: Field -> Board -> Coo -> IO Board
-putElemIn elem board (Coords (x1, y1, x2, y2)) = do
-  return (replaceNth x1 (replaceNth x2 elem (board!!x1)) board)
-
-putSheepIn :: Board -> SheepNumber -> Coo -> IO Board
-putSheepIn board number coo = putElemIn (White (Just (Sheep number))) board coo
-
-putWolfIn :: Board -> Coo -> IO Board
-putWolfIn board coo = putElemIn (White (Just Wolf)) board coo
-
 possiblePlaces :: Coo -> [(Int, Int)]
 possiblePlaces (Coords (x1, y1, x2, y2)) =
   case (x1, x2) of (7, 0) -> [(6,1)]
@@ -197,11 +187,6 @@ possiblePlaces (Coords (x1, y1, x2, y2)) =
                    (0, x) -> [(1,(x-1)), (1,(x+1))]
                    (y, 0) -> [((y-1),1), ((y+1),1)]
                    (y, x) -> [((y-1),(x-1)), ((y+1),(x-1)), ((y-1),(x+1)), ((y+1),(x+1))]
-
-replaceNth :: Int -> t1 -> [t1] -> [t1]
-replaceNth n newVal (x:xs)
-  | n == 0 = newVal:xs
-  | otherwise = x:replaceNth (n-1) newVal xs
 
 myNewButton :: Table -> String -> String -> Int -> Int -> Int -> Int -> IO Button
 myNewButton table label path x1 y1 x2 y2 =
